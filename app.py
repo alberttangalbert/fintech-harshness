@@ -3,7 +3,6 @@ from utils import get_all_data, get_wells_fargo_data
 import random
 #%%
 wells_fargo_data = get_wells_fargo_data()
-
 #%%
 from flask import Flask, render_template
 
