@@ -1,1 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Complaints</title>
+    <style>
+        body {
+            text-align: left;
+            dispalay: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            height: 100vh;
+        }
+        #complaintDisplay {
+            margin-top: 20px;
+            margin-left: 20px;
+        }
+        
+        #ratingInput {
+            position: fixed;
+            top: 65%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #buttons {
+            position: fixed;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }  
+        #jumpToComplaint {
+            position: fixed;
+            top: 75%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #export {
+            position: fixed;
+            top: 80%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #prevButton,
+        #nextButton {
+            margin: 0 10px;
+        }
+        #currentRating {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="complaintsTitle">Customer Complaints</h1>
+    <div id="complaintDisplay"></div>
+    <input type="number" id="ratingInput" placeholder="Enter rating (1-4)">
+    <div id="buttons">
+        <button id="prevButton" disabled>Previous Complaint</button>
+        <button id="nextButton">Next Complaint</button>
+    </div>
+    <div id="currentRating">
+        <h3>Current Complaint Rating:</h3>
+        <span id="ratingText">Not rated</span>
+    </div>
+    <div id="jumpToComplaint">
+        <input type="number" id="jumpInput" placeholder="Jump to complaint">
+        <button id="goToComplaint">Go to Complaint</button>
+    </div>
+    <div  id="export">
+        <button id="exportButton">Export to CSV</button>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const complaintDisplay = document.getElementById("complaintDisplay");
+            const prevButton = document.getElementById("prevButton");
+            const nextButton = document.getElementById("nextButton");
+            const ratingInput = document.getElementById("ratingInput");
+            const ratingText = document.getElementById("ratingText");
+            const jumpInput = document.getElementById("jumpInput");
+            const goToComplaint = document.getElementById("goToComplaint");
+            const ratingsList = document.getElementById("ratingsList");
+            const exportButton = document.getElementById("exportButton");
 
+            let complaintIndex = 0;
+            const complaints = {{ complaints|tojson }};
+            const ratings = Array(complaints.length).fill(null);
+
+            function updateButtons() {
+                prevButton.disabled = complaintIndex === 0;
+                nextButton.disabled = complaintIndex === complaints.length - 1;
+            }
+
+            function displayComplaint() {
+                complaintDisplay.textContent = complaints[complaintIndex];
+                ratingInput.value = ratings[complaintIndex] || "";
+                ratingText.textContent = ratings[complaintIndex] !== null ? `Rating: ${ratings[complaintIndex]}` : "Not rated";
+                updateComplaintTitle();
+            }
+            
+            function exportToCSV() {
+                const csvRows = [["Complaint", "Rating"]]; // Initialize with the CSV header
+                for (let i = 0; i < complaints.length; i++) {
+                    const complaint = complaints[i].replace(/"/g, '""'); // Escape double quotes
+                    const rating = ratings[i] !== null ? ratings[i] : "Not rated";
+                    csvRows.push([`"${complaint}"`, `"${rating}"`]);
+                }
+            
+                const csvContent = csvRows.map(row => row.join(",")).join("\n");
+            
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                const link = document.createElement("a");
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "complaint_ratings.csv");
+                    link.style.visibility = "hidden";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+            
+            function updateComplaintTitle() {
+                const titleElement = document.getElementById("complaintsTitle");
+                const complaintNumber = complaintIndex + 1; // Adding 1 to convert to 1-based index
+                titleElement.textContent = `Complaint ${complaintNumber} of ${complaints.length}`;
+            }
+    
+            prevButton.addEventListener("click", () => {
+                if (complaintIndex > 0) {
+                    complaintIndex--;
+                    displayComplaint();
+                    updateButtons();
+                }
+            });
+
+            nextButton.addEventListener("click", () => {
+                if (complaintIndex < complaints.length - 1) {
+                    complaintIndex++;
+                    displayComplaint();
+                    updateButtons();
+                }
+            });
+
+            ratingInput.addEventListener("input", () => {
+                const rating = parseInt(ratingInput.value);
+                if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+                    ratings[complaintIndex] = rating;
+                    displayComplaint();
+                }
+            });
+
+            goToComplaint.addEventListener("click", () => {
+                const targetComplaint = parseInt(jumpInput.value) - 1;
+                if (!isNaN(targetComplaint) && targetComplaint >= 0 && targetComplaint < complaints.length) {
+                    complaintIndex = targetComplaint;
+                    displayComplaint();
+                    updateButtons();
+                }
+            });
+            
+            exportButton.addEventListener("click", exportToCSV);
+            
+            displayComplaint();
+            updateButtons();
+        });
+    </script>
+</body>
+</html>
